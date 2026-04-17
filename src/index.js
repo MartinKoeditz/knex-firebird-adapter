@@ -64,8 +64,10 @@ class Client_Firebird extends Client {
     if (value === "*") {
       return value;
     }
-
-    return value;
+    if (value.startsWith('"') && value.endsWith('"')) {
+      return value;
+    }
+    return `"${value}"`;
   }
 
   async acquireRawConnection() {
@@ -73,7 +75,7 @@ class Client_Firebird extends Client {
 
     const driver = this._driver();
     const client = driver.createNativeClient(
-      this.config.libraryPath || driver.getDefaultLibraryFilename()
+      this.config.libraryPath || driver.getDefaultLibraryFilename(),
     );
 
     const databasePath = this.config.connection.database;
@@ -96,7 +98,7 @@ class Client_Firebird extends Client {
         const errMsg = String(e);
         if (
           ['I/O error during "open O_CREAT"', "DATABASE is in use"].some(
-            (msg) => errMsg.includes(msg)
+            (msg) => errMsg.includes(msg),
           )
         ) {
           return await connect();
@@ -150,14 +152,14 @@ class Client_Firebird extends Client {
       if (obj.returning && !statement.hasResultSet) {
         const response = await statement.executeSingletonAsObject(
           transaction,
-          obj.bindings
+          obj.bindings,
         );
         fResponse.rows = [Object.values(response)];
         fResponse.fields = Object.keys(response);
       } else if (statement.hasResultSet) {
         const response = await statement.executeQuery(
           transaction,
-          obj.bindings
+          obj.bindings,
         );
         try {
           const [rows, fields] = await Promise.all([
@@ -250,7 +252,7 @@ class Client_Firebird extends Client {
                 const buffer = Buffer.alloc(await stream.length);
                 await stream.read(buffer);
                 row[key] = buffer;
-              })
+              }),
           );
         } else {
           row[key] = value;
