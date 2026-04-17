@@ -1,36 +1,27 @@
-# 👾 knex-firebird-dialect
+# 👾 knex-firebird-adapter
 
-[![codecov](https://codecov.io/gh/Tomas2D/knex-firebird-dialect/branch/master/graph/badge.svg?token=SQA7VM6XIV)](https://codecov.io/gh/Tomas2D/knex-firebird-dialect)
+Note: This is a fork of https://codecov.io/gh/Tomas2D/knex-firebird-dialect/.
 
-This library serves as dialect (client) for [Knex.js](https://github.com/knex/knex) (A SQL query builder). 
+This library provides a Firebird dialect (client) for [Knex.js](https://github.com/knex/knex), a SQL query builder.
 
-The purpose of doing this is to replace old unmaintained libraries; this one is based on [igorklopov/firebird-knex](https://github.com/igorklopov/firebird-knex).
-Under the hood, there is a [node-firebird-driver-native](https://github.com/asfernandes/node-firebird-drivers/blob/master/packages/node-firebird-driver-native/).
-In case you can't use the `node-firebird-driver-native` package, stick to version 1.x of this package which works on top of [node-firebird](https://github.com/hgourvest/node-firebird) package.
+It continues the work of previous, unmaintained libraries and is based on [igorklopov/firebird-knex](https://github.com/igorklopov/firebird-knex).
+Under the hood it can use the `node-firebird-driver-native` driver. If that driver is not suitable for your environment, consider using a compatible 1.x release of this package which works with the older [node-firebird](https://github.com/hgourvest/node-firebird) driver.
 
-Show some love and ⭐️ this project!
+If you find this fork useful, a ⭐️ is appreciated.
+
+## Installation
+
+Install from npm if published, or use one of the local installation methods shown below for development.
 
 ## 🚀 Usage
 
-Start with installing the package with your favorite package manager.
-
-```
-yarn add knex-firebird-dialect node-firebird-driver-native
-```
-
-or
-
-```
-npm install knex-firebird-dialect
-```
-
-Snippet below shows basic setup.
+Basic setup example (ESM):
 
 ```javascript
 import knexLib from "knex";
-import knexFirebirdDialect from "knex-firebird-dialect";
+import knexFirebirdDialect from "knex-firebird-dialect"; // or your local package name
 
-const knexConfig = {
+const knex = knexLib({
   client: knexFirebirdDialect,
   connection: {
     host: "127.0.0.1",
@@ -42,9 +33,86 @@ const knexConfig = {
   },
   createDatabaseIfNotExists: true,
   debug: false,
-};
+});
+
+export default knex;
 ```
 
-**Notice**: if you using CommonJS require, do not forget to use the default import. `const knexFirebirdDialect = require("knex-firebird-dialect").default`;
+CommonJS example (require):
 
-For more look at the `tests` folder.
+```javascript
+const knexLib = require('knex');
+const knexFirebirdDialect = require('knex-firebird-dialect').default;
+
+const knex = knexLib({ client: knexFirebirdDialect, connection: {/*...*/} });
+```
+
+## Using the module locally
+
+If you want to use this fork locally from another project, you have a few options:
+
+1) Local file install (quick, no global linking):
+
+```bash
+# from your project directory
+npm install --save ../path/to/knex-firebird-adapter
+```
+
+Or add to your project's `package.json`:
+
+```json
+"dependencies": {
+  "knex-firebird-adapter": "file:../knex-firebird-adapter"
+}
+```
+
+2) `npm link` (handy during development):
+
+```bash
+# in the fork repository
+cd /path/to/knex-firebird-adapter
+npm install
+npm link
+
+# in the target project
+cd /path/to/your-project
+npm link knex-firebird-adapter
+```
+
+3) Direct relative import for quick experiments or tests:
+
+```javascript
+const knexFirebirdDialect = require('../knex-firebird-adapter').default;
+```
+
+Choose the method that fits your workflow.
+
+## Tests
+
+Quick guide to run tests in this repository:
+
+1. Install dependencies:
+
+```bash
+npm install
+```
+
+2. Run the test suite:
+
+```bash
+npm test
+# or directly with jest
+npx jest
+```
+
+Run a single test file:
+
+```bash
+npx jest tests/basic-operations.test.js
+```
+
+See the `tests` folder for more examples and integration tests.
+
+---
+
+For more information and examples, browse the `tests` folder and the source files.
