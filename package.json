@@ -1,6 +1,6 @@
 {
-  "name": "knex-firebird-dialect",
-  "version": "2.1.4",
+  "name": "knex-firebird-adapter",
+  "version": "1.0.0",
   "main": "lib/index.js",
   "scripts": {
     "build": "babel src --out-dir lib",
@@ -19,16 +19,19 @@
     "knex",
     "orm"
   ],
-  "author": "Tomáš Dvořák <toomas2d@gmail.com>",
+  "author": "Martin Köditz <martin.koeditz@syndesk-sw.de>",
   "license": "MIT",
-  "homepage": "https://github.com/Tomas2D/knex-firebird-dialect#readme",
-  "description": "Firebird dialect for Knex.js",
+  "homepage": "https://github.com/MartinKoeditz/knex-firebird-adapter#readme",
+  "description": "Firebird adapter for Knex.js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Tomas2D/knex-firebird-dialect.git"
+    "url": "git+https://github.com/MartinKoeditz/knex-firebird-adapter.git"
   },
   "bugs": {
-    "url": "https://github.com/Tomas2D/knex-firebird-dialect/issues"
+    "url": "https://github.com/MartinKoeditz/knex-firebird-adapter/issues"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "dependencies": {
     "@babel/runtime": "^7.23.2",

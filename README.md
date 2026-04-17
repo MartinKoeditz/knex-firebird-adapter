@@ -19,10 +19,10 @@ Basic setup example (ESM):
 
 ```javascript
 import knexLib from "knex";
-import knexFirebirdDialect from "knex-firebird-dialect"; // or your local package name
+import knexFirebirdAdapter from "knex-firebird-adapter"; // or your local package name
 
 const knex = knexLib({
-  client: knexFirebirdDialect,
+  client: knexFirebirdAdapter,
   connection: {
     host: "127.0.0.1",
     port: 3050,
@@ -42,9 +42,9 @@ CommonJS example (require):
 
 ```javascript
 const knexLib = require('knex');
-const knexFirebirdDialect = require('knex-firebird-dialect').default;
+const knexFirebirdAdapter = require('knex-firebird-adapter').default;
 
-const knex = knexLib({ client: knexFirebirdDialect, connection: {/*...*/} });
+const knex = knexLib({ client: knexFirebirdAdapter, connection: {/*...*/} });
 ```
 
 ## Using the module locally
@@ -82,7 +82,7 @@ npm link knex-firebird-adapter
 3) Direct relative import for quick experiments or tests:
 
 ```javascript
-const knexFirebirdDialect = require('../knex-firebird-adapter').default;
+const knexFirebirdAdapter = require('../knex-firebird-adapter').default;
 ```
 
 Choose the method that fits your workflow.
@@ -112,6 +112,34 @@ npx jest tests/basic-operations.test.js
 ```
 
 See the `tests` folder for more examples and integration tests.
+
+## Publishing to npm
+
+Before publishing, update `package.json` fields `name`, `repository` and `homepage` to point to your GitHub repository and bump the `version` accordingly. Ensure the package builds (`npm run build`) and that `lib` is included in the `files` field.
+
+1. Login to npm (if not already):
+
+```bash
+npm login
+```
+
+2. Build and publish:
+
+```bash
+npm run build
+npm publish --access public
+```
+
+3. Tag and push the release:
+
+```bash
+git tag v<version>
+git push origin --tags
+```
+
+Notes:
+- The `publishConfig.access` field is set to `public` in `package.json` to allow public publishing.
+- For a scoped package (e.g. `@your-org/knex-firebird-adapter`) adjust `name` and access as needed.
 
 ---
 
