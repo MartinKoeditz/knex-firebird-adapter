@@ -11,8 +11,9 @@ describe("wrapIdentifierImpl – unit tests", () => {
   let client;
 
   beforeAll(() => {
-    // Minimal config – no real connection is established
-    client = new Client_Firebird({ connection: { database: "dummy.fdb" } });
+    // Minimal config – no real connection is established.
+    // 'client' must be provided so knex does not throw "Required configuration option 'client' is missing."
+    client = new Client_Firebird({ client: Client_Firebird, connection: { database: "dummy.fdb" } });
   });
 
   it("wraps a plain identifier in double quotes", () => {

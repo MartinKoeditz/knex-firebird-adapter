@@ -297,7 +297,6 @@ class Client_Firebird extends Client {
 }
 
 Object.assign(Client_Firebird.prototype, {
-  dialect: "firebird",
   driverName: "node-firebird-driver-native",
 
   Firebird_Formatter,
