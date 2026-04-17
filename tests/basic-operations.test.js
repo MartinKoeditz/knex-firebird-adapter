@@ -247,6 +247,49 @@ describe("Basic operations", () => {
     `);
   });
 
+  it("Update with returning – single column", async () => {
+    const result = await knex("users")
+      .where({ id: 1 })
+      .update({ role: "admin" })
+      .returning("role");
+    expect(result).toStrictEqual([{ role: "admin" }]);
+  });
+
+  it("Update with returning – multiple columns", async () => {
+    const result = await knex("users")
+      .where({ id: 2 })
+      .update({ role: "moderator" })
+      .returning(["id", "role"]);
+    expect(result).toStrictEqual([{ id: 2, role: "moderator" }]);
+  });
+
+  it("Update without returning – returns empty array", async () => {
+    const result = await knex("users").where({ id: 3 }).update({ role: "user" });
+    expect(result).toStrictEqual([]);
+  });
+
+  it("Delete with returning – single column", async () => {
+    const result = await knex("users")
+      .where({ id: 3 })
+      .delete()
+      .returning("id");
+    expect(result).toStrictEqual([{ id: 3 }]);
+    await expect(knex("users").where({ id: 3 }).first()).resolves.toBeUndefined();
+  });
+
+  it("Delete with returning – multiple columns", async () => {
+    const result = await knex("users")
+      .where({ id: 2 })
+      .delete()
+      .returning(["id", "user_name"]);
+    expect(result).toStrictEqual([{ id: 2, user_name: "Adam" }]);
+  });
+
+  it("Delete without returning – returns empty array", async () => {
+    const result = await knex("accounts").where({ id: 101 }).delete();
+    expect(result).toStrictEqual([]);
+  });
+
   it("Drop tables", async () => {
     await knex.schema.dropTable("accounts");
     await knex.schema.dropTable("users");

@@ -222,6 +222,8 @@ class Client_Firebird extends Client {
       case "pluck":
         return map(rows, obj.pluck);
       case "insert":
+      case "update":
+      case "del":
         return Object.defineProperties(rows.slice(), {
           rows: { value: rows, enumerable: false },
           fields: { value: fields, enumerable: false },
