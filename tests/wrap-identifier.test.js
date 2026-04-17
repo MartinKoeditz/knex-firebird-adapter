@@ -132,3 +132,74 @@ describe("wrapIdentifier – case sensitivity in Firebird (integration)", () => 
     expect(query.sql).not.toMatch(/"LOWER_COL"/);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Integration tests – wrapIdentifier config option (preserves original casing)
+// ---------------------------------------------------------------------------
+
+describe("wrapIdentifier config option – mixed-case identifiers (integration)", () => {
+  let knex;
+  const baseConfig = generateConfig();
+  const knexConfig = {
+    ...baseConfig,
+    connection: {
+      ...baseConfig.connection,
+      // lowercase_keys must be false so that getColumnName() does not
+      // lowercase the column name before wrapIdentifierImpl quotes it.
+      lowercase_keys: false,
+    },
+    // Pass identifiers through as-is – no lowercasing by the schema compiler
+    wrapIdentifier: (value, origWrap) => origWrap(value),
+  };
+
+  beforeAll(async () => {
+    knex = knexLib(knexConfig);
+  });
+
+  afterAll(async () => {
+    await knex.schema.dropTableIfExists("tblFooBar").catch(() => {});
+    await knex.destroy();
+    await fs.promises.unlink(knexConfig.connection.database).catch(() => {});
+  });
+
+  it("creates a table and columns preserving mixed-case names", async () => {
+    await knex.schema.createTable("tblFooBar", (table) => {
+      table.integer("id").primary();
+      table.string("myField", 100).nullable();
+    });
+
+    expect(await knex.schema.hasTable("tblFooBar")).toBe(true);
+    expect(await knex.schema.hasColumn("tblFooBar", "myField")).toBe(true);
+  });
+
+  it("does not find table or column with wrong casing", async () => {
+    expect(await knex.schema.hasTable("tblfoobar")).toBe(false);
+    expect(await knex.schema.hasTable("TBLFOOBAR")).toBe(false);
+    expect(await knex.schema.hasColumn("tblFooBar", "myfield")).toBe(false);
+    expect(await knex.schema.hasColumn("tblFooBar", "MYFIELD")).toBe(false);
+  });
+
+  it("inserts and retrieves rows using the exact mixed-case column name", async () => {
+    await knex("tblFooBar").insert({ id: 1, myField: "hello" });
+
+    const rows = await knex("tblFooBar").select("myField");
+    expect(rows).toHaveLength(1);
+    // lowercase_keys: false → key is returned with the original stored casing
+    expect(rows[0]).toMatchObject({ myField: "hello" });
+  });
+
+  it("mixed-case name is stored verbatim in Firebird system tables", async () => {
+    const result = await knex.raw(
+      `SELECT RDB$FIELD_NAME FROM RDB$RELATION_FIELDS
+       WHERE RDB$RELATION_NAME = 'tblFooBar'
+         AND TRIM(RDB$FIELD_NAME) = 'myField'`,
+    );
+    expect(result.rows.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("generated SQL contains the identifier in its original casing", async () => {
+    const query = knex("tblFooBar").where("myField", "test").toSQL();
+    expect(query.sql).toContain('"myField"');
+    expect(query.sql).not.toMatch(/"myfield"/);
+  });
+});

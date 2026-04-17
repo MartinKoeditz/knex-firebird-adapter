@@ -22,14 +22,13 @@ import knexLib from "knex";
 import knexFirebirdAdapter from "knex-firebird-adapter"; // or your local package name
 
 const knex = knexLib({
-  client: knexFirebirdAdapter,
+  client: knexFirebirdAdapter, // required – always pass the adapter class here
   connection: {
     host: "127.0.0.1",
     port: 3050,
     user: "SYSDBA",
     password: "masterkey",
     database: '/tmp/database.fdb',
-    lowercase_keys: true,
   },
   createDatabaseIfNotExists: true,
   debug: false,
@@ -45,6 +44,79 @@ const knexLib = require('knex');
 const knexFirebirdAdapter = require('knex-firebird-adapter').default;
 
 const knex = knexLib({ client: knexFirebirdAdapter, connection: {/*...*/} });
+```
+
+> **Important:** The `client` option is required. Omitting it will throw
+> `Required configuration option 'client' is missing.`
+
+## Identifier case sensitivity
+
+All identifiers (table and column names) are wrapped in double quotes by this
+adapter. Firebird therefore treats them as **case-sensitive**.
+
+### Schema builder (lowercase by default)
+
+The schema compiler lowercases every identifier before quoting it. Identifiers
+passed to the schema builder are always stored in **lowercase**, regardless of
+the casing you provide:
+
+```javascript
+await knex.schema.createTable("my_table", (table) => {
+  table.string("lower_col");
+  table.string("MixedCase"); // stored as "mixedcase"
+});
+
+await knex.schema.hasColumn("my_table", "lower_col");  // true
+await knex.schema.hasColumn("my_table", "MixedCase");  // false – stored as "mixedcase"
+await knex.schema.hasColumn("my_table", "mixedcase");  // true
+```
+
+### Preserve exact casing with `wrapIdentifier`
+
+To keep the original casing (e.g. `tblFooBar`, `myField`), pass a
+`wrapIdentifier` function in the knex config. It receives the raw identifier
+value and must return the final quoted string.
+
+```javascript
+const knex = knexLib({
+  client: knexFirebirdAdapter,
+  connection: { /* ... */ },
+  // Skip lowercasing – wrap the value as-is in double quotes
+  wrapIdentifier: (value, origWrap) => origWrap(value),
+});
+```
+
+With this config, identifiers keep their original casing and the schema builder
+no longer lowercases them:
+
+```javascript
+await knex.schema.createTable("tblFooBar", (table) => {
+  table.increments("id");
+  table.string("myField", 100);
+});
+
+// Exact casing is required for every access
+await knex.schema.hasTable("tblFooBar");              // true
+await knex.schema.hasTable("tblfoobar");              // false
+await knex.schema.hasColumn("tblFooBar", "myField");  // true
+await knex.schema.hasColumn("tblFooBar", "myfield");  // false
+
+await knex("tblFooBar").insert({ id: 1, myField: "hello" });
+const rows = await knex("tblFooBar").select("myField");
+// rows[0].myField === "hello"  (or rows[0].myfield with lowercase_keys: true)
+```
+
+> **Note:** When `lowercase_keys: true` is set in the connection config,
+> Firebird returns column names in lowercase regardless of their stored casing.
+> Use `lowercase_keys: false` if you need the original casing in query results.
+
+### Mixed-case identifiers via raw SQL
+
+Alternatively, create mixed-case objects with `knex.raw()` using explicit
+double quotes — without needing to configure `wrapIdentifier`:
+
+```javascript
+await knex.raw(`CREATE TABLE "tblFooBar" ("myField" VARCHAR(100))`);
 ```
 
 ## Using the module locally
