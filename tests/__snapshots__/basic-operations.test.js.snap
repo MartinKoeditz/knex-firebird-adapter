@@ -1,0 +1,200 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`Basic operations Filtering 1`] = `
+[
+  {
+    "binary_data": {
+      "data": [
+        66,
+        105,
+        110,
+        97,
+        114,
+        121,
+        32,
+        100,
+        97,
+        116,
+        97,
+        32,
+        102,
+        111,
+        114,
+        32,
+        65,
+        100,
+        97,
+        109,
+      ],
+      "type": "Buffer",
+    },
+    "id": 2,
+    "role": "user",
+    "status": "B",
+    "user_name": "Adam",
+  },
+]
+`;
+
+exports[`Basic operations Insert data into tables 1`] = `
+[
+  {
+    "binary_data": {
+      "data": [
+        66,
+        105,
+        110,
+        97,
+        114,
+        121,
+        32,
+        100,
+        97,
+        116,
+        97,
+        32,
+        102,
+        111,
+        114,
+        32,
+        84,
+        111,
+        109,
+        195,
+        161,
+        197,
+        161,
+        32,
+        240,
+        159,
+        152,
+        142,
+      ],
+      "type": "Buffer",
+    },
+    "id": 1,
+    "role": "user",
+    "status": "A",
+    "user_name": "Tomáš 😎",
+  },
+  {
+    "binary_data": {
+      "data": [
+        66,
+        105,
+        110,
+        97,
+        114,
+        121,
+        32,
+        100,
+        97,
+        116,
+        97,
+        32,
+        102,
+        111,
+        114,
+        32,
+        65,
+        100,
+        97,
+        109,
+      ],
+      "type": "Buffer",
+    },
+    "id": 2,
+    "role": "user",
+    "status": "B",
+    "user_name": "Adam",
+  },
+  {
+    "binary_data": {
+      "data": [
+        66,
+        105,
+        110,
+        97,
+        114,
+        121,
+        32,
+        100,
+        97,
+        116,
+        97,
+        32,
+        102,
+        111,
+        114,
+        32,
+        76,
+        117,
+        99,
+        97,
+        115,
+      ],
+      "type": "Buffer",
+    },
+    "id": 3,
+    "role": "user",
+    "status": "C",
+    "user_name": "Lucas",
+  },
+]
+`;
+
+exports[`Basic operations Insert data into tables 2`] = `
+[
+  {
+    "account_name": "knex",
+    "id": 101,
+    "user_id": 1,
+  },
+]
+`;
+
+exports[`Basic operations Left join 1`] = `
+[
+  {
+    "account": "knex",
+    "user_name": "Tomáš 😎",
+  },
+]
+`;
+
+exports[`Basic operations Test limits 1`] = `
+[
+  {
+    "binary_data": {
+      "data": [
+        66,
+        105,
+        110,
+        97,
+        114,
+        121,
+        32,
+        100,
+        97,
+        116,
+        97,
+        32,
+        102,
+        111,
+        114,
+        32,
+        76,
+        117,
+        99,
+        97,
+        115,
+      ],
+      "type": "Buffer",
+    },
+    "id": 3,
+    "role": "user",
+    "status": "C",
+    "user_name": "Lucas",
+  },
+]
+`;

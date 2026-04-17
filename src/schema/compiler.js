@@ -45,6 +45,9 @@ class SchemaCompiler_Firebird extends SchemaCompiler {
   }
 
   dropTableIfExists(tableName) {
+    if (!isValidIdentifier(tableName)) {
+      throw new Error(`Invalid identifier: "${tableName}"`);
+    }
     const fullTableName = this.formatter
       .wrap(prefixedTableName(this.schema, tableName))
       .toUpperCase();
@@ -70,6 +73,10 @@ class SchemaCompiler_Firebird extends SchemaCompiler {
 
 function prefixedTableName(prefix, table) {
   return prefix ? `${prefix}.${table}` : table;
+}
+
+function isValidIdentifier(name) {
+  return typeof name === "string" && /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name);
 }
 
 SchemaCompiler_Firebird.prototype.lowerCase = true;
