@@ -103,6 +103,28 @@ class QueryCompiler_Firebird extends QueryCompiler {
     };
   }
 
+  upsert() {
+    const { upsert, matching, returning } = this.single;
+
+    if (!upsert) return "";
+
+    const insertData = this._prepInsert(upsert);
+    if (insertData.columns.length === 0) return "";
+
+    const columns = this.formatter.columnize(insertData.columns);
+    const values = this._buildInsertValues(insertData);
+    let sql = `update or insert into ${this.tableName} (${columns}) values (${values})`;
+
+    if (matching) {
+      const matchCols = Array.isArray(matching) ? matching : [matching];
+      sql += ` matching (${this.formatter.columnize(matchCols)})`;
+    }
+
+    if (returning) sql += this._returning(returning);
+
+    return { sql, returning };
+  }
+
   _returning(value) {
     return value ? ` returning ${this.formatter.columnize(value)}` : "";
   }

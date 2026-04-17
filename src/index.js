@@ -4,6 +4,7 @@ import Client from "knex/lib/client";
 
 import ColumnBuilder from "./schema/columnbuilder";
 import ColumnCompiler from "./schema/columncompiler";
+import QueryBuilder from "./query/builder";
 import QueryCompiler from "./query/compiler";
 import TableCompiler from "./schema/tablecompiler";
 import Transaction from "./transaction";
@@ -38,6 +39,10 @@ class Client_Firebird extends Client {
 
   schemaCompiler() {
     return new SchemaCompiler(this, ...arguments);
+  }
+
+  queryBuilder() {
+    return new QueryBuilder(this);
   }
 
   queryCompiler(builder, formatter) {
@@ -224,6 +229,7 @@ class Client_Firebird extends Client {
       case "insert":
       case "update":
       case "del":
+      case "upsert":
         return Object.defineProperties(rows.slice(), {
           rows: { value: rows, enumerable: false },
           fields: { value: fields, enumerable: false },
