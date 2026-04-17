@@ -78,7 +78,6 @@ class QueryCompiler_Firebird extends QueryCompiler {
   }
 
   update() {
-    
     let sql = super.update();
     if (sql === "") return sql;
 
@@ -88,6 +87,19 @@ class QueryCompiler_Firebird extends QueryCompiler {
     return {
       sql: sql,
       returning,
+    };
+  }
+
+  del() {
+    let sql = super.del();
+    if (sql === "") return sql;
+
+    const { returning } = this.single;
+    if (returning) sql += this._returning(returning);
+
+    return { 
+      sql, 
+      returning, 
     };
   }
 
@@ -141,7 +153,7 @@ class QueryCompiler_Firebird extends QueryCompiler {
           rows,
           function (columns, value) {
             const name = self.getColumnName(
-              value[self.getColumnName("name")].trim()
+              value[self.getColumnName("name")].trim(),
             );
 
             columns[name] = {
@@ -155,7 +167,7 @@ class QueryCompiler_Firebird extends QueryCompiler {
 
             return columns;
           },
-          {}
+          {},
         );
 
         if (column && !result[column]) {
