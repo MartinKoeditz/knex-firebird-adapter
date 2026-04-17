@@ -9,7 +9,7 @@ class SchemaCompiler_Firebird extends SchemaCompiler {
     const fullTableName = prefixedTableName(
       this.schema,
       String(tableName),
-    ).toUpperCase();
+    );
     this.pushQuery({
       sql: `select 1 from rdb$relations where rdb$relation_name = ?`,
       bindings: [fullTableName],
@@ -22,8 +22,8 @@ class SchemaCompiler_Firebird extends SchemaCompiler {
     if (!tableName || !column) {
       throw new Error("hasColumn requires both tableName and column arguments");
     }
-    const table = String(tableName).toUpperCase();
-    const field = String(column).trim().toUpperCase();
+    const table = String(tableName);
+    const field = String(column).trim();
     this.pushQuery({
       sql:
         `select 1 from rdb$relations r ` +

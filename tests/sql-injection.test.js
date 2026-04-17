@@ -87,7 +87,7 @@ describe("SQL Injection", () => {
 
     it("does not return rows for injected WHERE condition", async () => {
       const rows = await knex("sqli_test")
-        .whereRaw("payload = ?", ["nonexistent' OR '1'='1"])
+        .where("payload", "nonexistent' OR '1'='1")
         .select("payload");
       expect(rows).toHaveLength(0);
     });

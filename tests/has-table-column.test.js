@@ -30,12 +30,12 @@ describe("hasTable / hasColumn", () => {
       await expect(knex.schema.hasTable("no_such_table")).resolves.toBe(false);
     });
 
-    it("is case-insensitive (lowercase input)", async () => {
+    it("finds table by exact lowercase name (case-sensitive)", async () => {
       await expect(knex.schema.hasTable("ht_test")).resolves.toBe(true);
     });
 
-    it("is case-insensitive (uppercase input)", async () => {
-      await expect(knex.schema.hasTable("HT_TEST")).resolves.toBe(true);
+    it("does not find table when name uses wrong casing (case-sensitive)", async () => {
+      await expect(knex.schema.hasTable("HT_TEST")).resolves.toBe(false);
     });
   });
 
@@ -66,18 +66,18 @@ describe("hasTable / hasColumn", () => {
       );
     });
 
-    it("is case-insensitive for column name", async () => {
+    it("does not find column when name uses wrong casing (case-sensitive)", async () => {
       await expect(knex.schema.hasColumn("ht_test", "NAME")).resolves.toBe(
-        true,
+        false,
       );
       await expect(knex.schema.hasColumn("ht_test", "Name")).resolves.toBe(
-        true,
+        false,
       );
     });
 
-    it("is case-insensitive for table name", async () => {
+    it("does not find column when table name uses wrong casing (case-sensitive)", async () => {
       await expect(knex.schema.hasColumn("HT_TEST", "name")).resolves.toBe(
-        true,
+        false,
       );
     });
 
