@@ -2,8 +2,9 @@
   "name": "knex-firebird-adapter",
   "version": "1.0.0",
   "main": "lib/index.js",
+  "types": "lib/index.d.ts",
   "scripts": {
-    "build": "babel src --out-dir lib",
+    "build": "babel src --out-dir lib && cp src/index.d.ts lib/index.d.ts",
     "test": "jest --detectOpenHandles --forceExit --runInBand",
     "prepublishOnly": "npm run build",
     "lint": "eslint --fix \"{src,tests}/**/*.js\"",
