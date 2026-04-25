@@ -119,7 +119,13 @@ class Client_Firebird extends Client {
    * @returns {Promise<unknown>}
    */
   async destroyRawConnection(connection) {
+    const client = connection.client; // postDispose() will clear connection.client, save it first
     await connection.disconnect();
+    // Dispose the native Firebird master/dispatcher handles to prevent segfaults
+    // on process exit caused by GC of live C++ objects.
+    if (client && typeof client.internalDispose === 'function') {
+      await client.internalDispose().catch(() => {});
+    }
   }
 
   /**
@@ -141,14 +147,17 @@ class Client_Firebird extends Client {
       return;
     }
 
-    if (connection._transaction) {
-      throw new Error("this should never happen!");
-    }
-
-    let transaction, statement;
+    // When begin() has started a managed transaction, all queries run inside
+    // it (no auto-commit). Otherwise we own the transaction and commit/rollback it.
+    const activeTrx = connection._activeFbTransaction;
+    const ownTransaction = !activeTrx;
+    let transaction = activeTrx;
+    let statement;
 
     try {
-      transaction = await connection.startTransaction();
+      if (!transaction) {
+        transaction = await connection.startTransaction();
+      }
       statement = await connection.prepare(transaction, sql);
       let fResponse = {
         rows: [],
@@ -181,14 +190,17 @@ class Client_Firebird extends Client {
       }
 
       await this._fixResponse(fResponse, transaction);
-      await transaction.commit();
+      if (ownTransaction) {
+        await transaction.commit();
+        transaction = null;
+      }
 
       return {
         ...obj,
         response: fResponse,
       };
     } catch (e) {
-      if (transaction) {
+      if (ownTransaction && transaction) {
         await transaction.rollback().catch(noop);
         transaction = null;
       }
@@ -259,7 +271,9 @@ class Client_Firebird extends Client {
               .then(async (stream) => {
                 const buffer = Buffer.alloc(await stream.length);
                 await stream.read(buffer);
-                row[key] = buffer;
+                row[key] = this.config.connection.blobAsText
+                  ? buffer.toString("utf8")
+                  : buffer;
               }),
           );
         } else {
