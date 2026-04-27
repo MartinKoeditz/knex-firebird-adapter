@@ -1,18 +1,71 @@
-name: Release package
+name: Release
+
 on:
   push:
     tags:
       - 'v*'
+
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Install Firebird
+        run: |
+          sudo bash -c 'echo "deb http://security.ubuntu.com/ubuntu focal-security main universe" > /etc/apt/sources.list.d/ubuntu-focal-sources.list'
+          sudo apt-get update -q
+          sudo apt-get install -y libtommath1 libtomcrypt1 libncurses5 musl-dev gcc build-essential netcat-openbsd
+          sudo ln -sf /usr/lib/x86_64-linux-gnu/libtommath.so.1 /usr/lib/x86_64-linux-gnu/libtommath.so.0
+          sudo ln -s /usr/lib/x86_64-linux-musl/libc.so /lib/libc.musl-x86_64.so.1
+          wget -nv -O Firebird.tar.gz "https://github.com/FirebirdSQL/firebird/releases/download/v5.0.4/Firebird-5.0.4.1812-0-linux-x64.tar.gz"
+          tar xzf Firebird.tar.gz
+          (cd Firebird-5.0.4.1812-0-linux-x64; sudo ./install.sh -silent)
+          sudo usermod -a -G firebird "$(whoami)"
+          sudo gpasswd -r firebird
+          sudo chown root:firebird /opt/firebird/SYSDBA.password
+          sudo chmod 440 /opt/firebird/SYSDBA.password
+          sudo chown -R firebird:firebird .
+          while ! nc -z localhost 3050; do sleep 1; done
+          sleep 2
+
+      - name: Run tests
+        run: |
+          sudo mkdir -p coverage
+          sudo chown -R firebird:firebird coverage
+          sudo chmod -R 777 coverage
+          sg firebird -c "LD_LIBRARY_PATH=/usr/lib64 npx env-cmd -f /opt/firebird/SYSDBA.password npm test"
+
+  publish:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write  # required for OIDC-based npm publish
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
           node-version-file: '.nvmrc'
           registry-url: 'https://registry.npmjs.org'
-      - run: npm ci
-      - run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Publish to npm
+        run: npm publish --provenance --access public
