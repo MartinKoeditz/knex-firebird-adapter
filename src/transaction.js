@@ -2,6 +2,17 @@ import Transaction from "knex/lib/execution/transaction";
 
 const noop = () => {};
 
+// Maps Knex-standard isolationLevel strings to the values accepted by
+// node-firebird-driver. Default is SNAPSHOT (Firebird's own default).
+// READ UNCOMMITTED is a syntax-only synonym for READ COMMITTED in Firebird.
+const ISOLATION_MAP = {
+  "read uncommitted": "READ_COMMITTED",
+  "read committed": "READ_COMMITTED",
+  "repeatable read": "SNAPSHOT",
+  snapshot: "SNAPSHOT",
+  serializable: "CONSISTENCY",
+};
+
 class Transaction_Firebird extends Transaction {
   /**
    * Starts an explicit Firebird transaction and stores it on the connection
@@ -11,9 +22,9 @@ class Transaction_Firebird extends Transaction {
    * @returns {Promise<unknown>}
    */
   async begin(conn) {
-    const isolation = (this.isolationLevel || "READ_COMMITTED")
-      .toUpperCase()
-      .replace(/ /g, "_");
+    const knexLevel = (this.isolationLevel || "").toLowerCase().trim();
+    // Default to SNAPSHOT (Firebird default isolation level)
+    const isolation = ISOLATION_MAP[knexLevel] ?? "SNAPSHOT";
     const transaction = await conn.startTransaction({
       isolation,
       ...(this.readOnly && {

@@ -119,6 +119,53 @@ double quotes — without needing to configure `wrapIdentifier`:
 await knex.raw(`CREATE TABLE "tblFooBar" ("myField" VARCHAR(100))`);
 ```
 
+## Transactions
+
+For a general introduction to the Knex transaction API see the [Knex transaction documentation](https://knexjs.org/guide/transactions.html). The section below describes Firebird-specific behaviour and the supported isolation levels.
+
+Transactions are started with `knex.transaction(fn, options)`. Pass the callback as the first argument and the options object — including `isolationLevel` — as the second.
+
+```javascript
+await knex.transaction(
+  async (trx) => {
+    await knex("orders").transacting(trx).insert({ amount: 100 });
+  },
+  { isolationLevel: "snapshot" },
+);
+```
+
+### Isolation levels
+
+The following Knex isolation level strings are supported. They map to Firebird's native transaction parameters as shown below.
+
+| Knex `isolationLevel` | Firebird level | Notes |
+|---|---|---|
+| *(not set)* | `SNAPSHOT` | Firebird default |
+| `"snapshot"` | `SNAPSHOT` | MVCC snapshot, no dirty/non-repeatable reads |
+| `"repeatable read"` | `SNAPSHOT` | Closest Firebird equivalent |
+| `"read committed"` | `READ COMMITTED` | Sees committed changes from concurrent transactions |
+| `"read uncommitted"` | `READ COMMITTED` | Syntax synonym in Firebird – identical behaviour to `read committed` |
+| `"serializable"` | `SNAPSHOT TABLE STABILITY` | Locks all accessed tables; prevents concurrent writes |
+
+The `isolationLevel` string is matched case-insensitively and leading/trailing whitespace is ignored.
+
+### Read-only transactions
+
+Pass `readOnly: true` to start a read-only transaction:
+
+```javascript
+await knex.transaction(
+  async (trx) => {
+    const rows = await knex("orders").transacting(trx).select("*");
+  },
+  { isolationLevel: "snapshot", readOnly: true },
+);
+```
+
+### Default isolation level
+
+When no `isolationLevel` is provided, the adapter uses Firebird's own default: **`SNAPSHOT`** (Multi Version Concurrency Control). This prevents dirty reads and non-repeatable reads without locking tables.
+
 ## Using the module locally
 
 If you want to use this fork locally from another project, you have a few options:
