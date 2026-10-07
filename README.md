@@ -49,6 +49,33 @@ const knex = knexLib({ client: knexFirebirdAdapter, connection: {/*...*/} });
 > **Important:** The `client` option is required. Omitting it will throw
 > `Required configuration option 'client' is missing.`
 
+## Text blobs as strings (`fetchAsString`)
+
+By default, all blob columns are returned as `Buffer`. Like Knex's Oracle
+client, the top-level `fetchAsString` option returns text blobs
+(`BLOB SUB_TYPE TEXT`) as UTF-8 strings instead:
+
+```javascript
+const knex = knexLib({
+  client: knexFirebirdAdapter,
+  connection: {/*...*/},
+  fetchAsString: ['textblob'], // 'clob' is accepted as an alias
+});
+```
+
+Binary blobs (`BLOB SUB_TYPE 0`) are never converted and stay `Buffer`s.
+
+Compatibility with the Oracle client: the option is read the same way
+(top-level array, case-insensitive, unsupported types only log a warning), and
+`'clob'` works as in Oracle. Oracle's `'date'`, `'number'` and `'buffer'` are
+not supported and only log a warning.
+
+When writing, blob parameters must still be passed as `Buffer`, e.g.
+`Buffer.from(text, 'utf8')`.
+
+> The former `connection.blobAsText` option has been removed; use
+> `fetchAsString: ['textblob']` instead.
+
 ## Identifier case sensitivity
 
 All identifiers (table and column names) are wrapped in double quotes by this
