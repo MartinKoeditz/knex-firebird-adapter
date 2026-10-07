@@ -45,6 +45,12 @@ class Client_Firebird extends Client {
 
     super(customConfig, ...args);
 
+    if (this.config.connection.blobAsText !== undefined) {
+      this.logger.warn(
+        "connection.blobAsText was removed in 2.0.0 and has no effect; use fetchAsString: ['textblob'] instead.",
+      );
+    }
+
     this.fetchTextBlobAsString = false;
     if (Array.isArray(this.config.fetchAsString)) {
       for (const type of this.config.fetchAsString) {

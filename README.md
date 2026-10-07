@@ -5,9 +5,31 @@ Note: This is a fork of https://codecov.io/gh/Tomas2D/knex-firebird-dialect/.
 This library provides a Firebird dialect (client) for [Knex.js](https://github.com/knex/knex), a SQL query builder.
 
 It continues the work of previous, unmaintained libraries and is based on [igorklopov/firebird-knex](https://github.com/igorklopov/firebird-knex).
-Under the hood it can use the `node-firebird-driver-native` driver. If that driver is not suitable for your environment, consider using a compatible 1.x release of this package which works with the older [node-firebird](https://github.com/hgourvest/node-firebird) driver.
+Under the hood it can use the `node-firebird-driver-native` driver. If that driver is not suitable for your environment, consider a 1.x release of the original [knex-firebird-dialect](https://github.com/Tomas2D/knex-firebird-dialect) package, which works with the older [node-firebird](https://github.com/hgourvest/node-firebird) driver.
 
 If you find this fork useful, a ⭐️ is appreciated.
+
+## ⚠️ Upgrading to 2.0
+
+**Breaking change:** `connection.blobAsText` has been removed. It converted
+*every* blob to a string, which corrupted binary blobs. Use the top-level
+`fetchAsString` option instead, which only converts text blobs
+(`BLOB SUB_TYPE TEXT`) and leaves binary blobs as `Buffer`s:
+
+```diff
+ const knex = knexLib({
+   client: knexFirebirdAdapter,
+   connection: {
+     /* ... */
+-    blobAsText: true,
+   },
++  fetchAsString: ['textblob'],
+ });
+```
+
+Without this change, text blobs are returned as `Buffer`s again. A leftover
+`blobAsText` has no effect and logs a warning at startup. See
+[Text blobs as strings](#text-blobs-as-strings-fetchasstring).
 
 ## Installation
 

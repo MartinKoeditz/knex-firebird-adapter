@@ -85,14 +85,26 @@ describe("fetchAsString", () => {
     expect(row.data.equals(binaryData)).toBe(true);
   });
 
-  it("ignores the removed connection.blobAsText option", async () => {
+  it("warns about the removed connection.blobAsText option and ignores it", async () => {
+    const warn = jest.fn();
     const knexBlobAsText = createKnex({
       connection: { ...knexConfig.connection, blobAsText: true },
+      log: { warn },
     });
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining("connection.blobAsText was removed in 2.0.0"),
+    );
+
     const [row] = await knexBlobAsText("articles")
       .where({ id: 1 })
       .select("body");
     expect(Buffer.isBuffer(row.body)).toBe(true);
+  });
+
+  it("does not warn without blobAsText and with a supported type", () => {
+    const warn = jest.fn();
+    createKnex({ fetchAsString: ["textblob"], log: { warn } });
+    expect(warn).not.toHaveBeenCalled();
   });
 
   it("warns about unsupported types and keeps the default representation", async () => {
