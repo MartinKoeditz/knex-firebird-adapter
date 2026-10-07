@@ -29,7 +29,7 @@ If you find this fork useful, a ⭐️ is appreciated.
 
 Without this change, text blobs are returned as `Buffer`s again. A leftover
 `blobAsText` has no effect and logs a warning at startup. See
-[Text blobs as strings](#text-blobs-as-strings-fetchasstring).
+[Fetching values as strings](#fetching-values-as-strings-fetchasstring).
 
 ## Installation
 
@@ -71,26 +71,38 @@ const knex = knexLib({ client: knexFirebirdAdapter, connection: {/*...*/} });
 > **Important:** The `client` option is required. Omitting it will throw
 > `Required configuration option 'client' is missing.`
 
-## Text blobs as strings (`fetchAsString`)
+## Fetching values as strings (`fetchAsString`)
 
-By default, all blob columns are returned as `Buffer`. Like Knex's Oracle
-client, the top-level `fetchAsString` option returns text blobs
-(`BLOB SUB_TYPE TEXT`) as UTF-8 strings instead:
+Like Knex's Oracle client, the top-level `fetchAsString` option returns
+selected column types as strings instead of their default representation:
 
 ```javascript
 const knex = knexLib({
   client: knexFirebirdAdapter,
   connection: {/*...*/},
-  fetchAsString: ['textblob'], // 'clob' is accepted as an alias
+  fetchAsString: ['textblob', 'number', 'date'],
 });
 ```
 
-Binary blobs (`BLOB SUB_TYPE 0`) are never converted and stay `Buffer`s.
+| Type | Columns | Default | As string |
+| --- | --- | --- | --- |
+| `'textblob'` (alias `'clob'`) | `BLOB SUB_TYPE TEXT` | `Buffer` | UTF-8 text |
+| `'number'` | `SMALLINT`, `INTEGER`, `BIGINT`, `NUMERIC`, `DECIMAL`, `FLOAT`, `DOUBLE PRECISION` | `number` | `"12345.6789"` |
+| `'date'` | `DATE`, `TIME`, `TIMESTAMP` and their `WITH TIME ZONE` variants | `Date` / zoned object | `"2026-10-07"`, `"13:45:30.123"`, `"2026-10-07 13:45:30.123"`, `"2026-10-07 13:45:30.123 Europe/Berlin"` |
+
+- Binary blobs (`BLOB SUB_TYPE 0`) are never converted and stay `Buffer`s.
+- `NULL` stays `null`.
+- `'number'` converts the value read by the driver, which reads all these
+  columns as double precision. It does not restore precision beyond a double
+  (e.g. `BIGINT` above 2^53 or `NUMERIC(18,4)` with many digits).
+- `'date'` uses the local time zone for `DATE`, `TIME` and `TIMESTAMP`, the
+  way the driver builds its `Date` objects, and millisecond precision.
 
 Compatibility with the Oracle client: the option is read the same way
 (top-level array, case-insensitive, unsupported types only log a warning), and
-`'clob'` works as in Oracle. Oracle's `'date'`, `'number'` and `'buffer'` are
-not supported and only log a warning.
+`'number'`, `'date'` and `'clob'` work as in Oracle. Oracle's `'buffer'` is not
+supported and only logs a warning. The date format follows Firebird's own
+string conversion, not Oracle's `NLS_DATE_FORMAT`.
 
 When writing, blob parameters must still be passed as `Buffer`, e.g.
 `Buffer.from(text, 'utf8')`.

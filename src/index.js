@@ -12,20 +12,12 @@ import SchemaCompiler from "./schema/compiler";
 import Firebird_Formatter from "./formatter";
 import Firebird_DDL from "./schema/ddl";
 import { isFirebirdConnectionError } from "./utils";
+import {
+  formatDateValue,
+  isTextBlobColumn,
+  parseFetchAsString,
+} from "./fetch-as-string";
 import * as driver from "node-firebird-driver-native";
-
-// fetchAsString types for text blobs (BLOB SUB_TYPE TEXT).
-//
-// The option follows Knex's Oracle client (knex/lib/dialects/oracledb, see
-// https://knexjs.org/guide/#fetchasstring): a top-level array of type names,
-// matched case-insensitively; non-string entries are ignored and unsupported
-// types only log a warning instead of failing. "CLOB" is accepted so the CLOB
-// part of an Oracle configuration works unchanged. Oracle's other types
-// ("DATE", "NUMBER", "BUFFER") have no counterpart here and only warn.
-// Unlike Oracle, where the driver converts the values, this adapter converts
-// text blobs itself after fetching them (see _getTextBlobColumns()).
-const FETCH_AS_STRING_TEXT_TYPES = ["TEXTBLOB", "CLOB"];
-const BLOB_SUB_TYPE_TEXT = 1;
 
 class Client_Firebird extends Client {
   constructor(config = {}, ...args) {
@@ -51,21 +43,10 @@ class Client_Firebird extends Client {
       );
     }
 
-    this.fetchTextBlobAsString = false;
-    if (Array.isArray(this.config.fetchAsString)) {
-      for (const type of this.config.fetchAsString) {
-        if (typeof type !== "string") {
-          continue;
-        }
-        if (FETCH_AS_STRING_TEXT_TYPES.includes(type.toUpperCase())) {
-          this.fetchTextBlobAsString = true;
-        } else {
-          this.logger.warn(
-            `Unsupported fetchAsString type "${type}": only "textblob" and "clob" (BLOB SUB_TYPE TEXT) are supported`,
-          );
-        }
-      }
-    }
+    this.fetchAsString = parseFetchAsString(
+      this.config.fetchAsString,
+      this.logger,
+    );
   }
 
   _driver() {
@@ -227,7 +208,7 @@ class Client_Firebird extends Client {
       await this._fixResponse(
         fResponse,
         transaction,
-        await this._getTextBlobColumns(connection, statement),
+        await this._getColumnTypes(connection, statement),
       );
       if (ownTransaction) {
         await transaction.commit();
@@ -291,30 +272,49 @@ class Client_Firebird extends Client {
   }
 
   /**
-   * Returns the indexes of the result columns that are text blobs (SUB_TYPE 1).
-   * Only these are returned as strings by `fetchAsString`; binary blobs stay Buffers.
+   * Returns `{ type, subType }` of each result column, which `fetchAsString`
+   * needs to tell text from binary blobs and to format dates.
+   * Returns `null` when `fetchAsString` is not in use.
    * @param {import('node-firebird-driver-native').Attachment} connection
-   * @returns {Promise<Set<number>>}
+   * @returns {Promise<Array<{ type: number, subType: number }> | null>}
    */
-  async _getTextBlobColumns(connection, statement) {
+  async _getColumnTypes(connection, statement) {
     const metadata = statement.outMetadata;
-    if (!this.fetchTextBlobAsString || !metadata) {
-      return new Set();
+    if (!this.fetchAsString || !metadata) {
+      return null;
     }
 
     return connection.client.statusAction(async (status) => {
-      const columns = new Set();
+      const columns = [];
       const count = metadata.getCountSync(status);
       for (let i = 0; i < count; i++) {
-        if (metadata.getSubTypeSync(status, i) === BLOB_SUB_TYPE_TEXT) {
-          columns.add(i);
-        }
+        columns.push({
+          type: metadata.getTypeSync(status, i),
+          subType: metadata.getSubTypeSync(status, i),
+        });
       }
       return columns;
     });
   }
 
-  async _fixResponse(obj, transaction, textBlobColumns = new Set()) {
+  /** Applies `fetchAsString` to a non-blob value. */
+  _fetchValueAsString(column, value) {
+    if (!column || value === null || value === undefined) {
+      return value;
+    }
+    if (this.fetchAsString.number && typeof value === "number") {
+      return String(value);
+    }
+    if (this.fetchAsString.date) {
+      const formatted = formatDateValue(column.type, value);
+      if (formatted !== undefined) {
+        return formatted;
+      }
+    }
+    return value;
+  }
+
+  async _fixResponse(obj, transaction, columns = null) {
     const { rows, fields } = obj;
     if (this.config.connection.lowercase_keys) {
       const newFields = fields.map((field) => field.toLowerCase());
@@ -334,11 +334,15 @@ class Client_Firebird extends Client {
               .then(async (stream) => {
                 const buffer = Buffer.alloc(await stream.length);
                 await stream.read(buffer);
-                row[key] = textBlobColumns.has(index)
-                  ? buffer.toString("utf8")
-                  : buffer;
+                const asText =
+                  this.fetchAsString?.textBlob &&
+                  columns &&
+                  isTextBlobColumn(columns[index]);
+                row[key] = asText ? buffer.toString("utf8") : buffer;
               }),
           );
+        } else if (columns) {
+          row[key] = this._fetchValueAsString(columns[index], value);
         } else {
           row[key] = value;
         }
